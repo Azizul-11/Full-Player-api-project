@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <h1>Cricket Data for Ranking</h1>
+    <table id="playerTable" border="1">
+      <thead>
+        <tr>
+          <th>Ranking</th>
+          <th>Name</th>
+          <th>Runs</th>
+          <th>Balls</th>
+          <th>Fours</th>
+          <th>Sixes</th>
+          <th>Strike Rate</th>
+          <th>Team</th>
+          <th>Opposition</th>
+          <th>Match Date</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <script>
+      fetch("http://localhost:3200/getmendata")
+        .then((res) => res.json())
+        .then((data) => {
+          const tableBody = document.getElementById("tableBody");
+          tableBody.innerHTML = "";
+
+          data.forEach((player) => {
+            const row = document.createElement("tr");
+            row.dataset.ranking = player.ranking; // Add a data attribute to identify the row
+            row.innerHTML = `<td>${player.ranking}</td>
+            <td>${player.name}</td>
+            <td contenteditable="false">${player.runs}</td>
+            <td contenteditable="false">${player.balls}</td>
+            <td contenteditable="false">${player.fours}</td>
+            <td contenteditable="false">${player.sixes}</td>
+            <td contenteditable="false">${player.sr}</td>
+            <td contenteditable="false">${player.team}</td>
+            <td contenteditable="false">${player.opposition}</td>
+            <td contenteditable="false">${player.matchDate}</td>
+            <td>
+              <button onclick="editRow('${player.ranking}')">Edit</button>
+              <button onclick="deleteRow('${player.ranking}')">Delete</button>
+              <button style="display:none" onclick="saveRow('${player.ranking}')">Save</button>
+            </td>`;
+
+            tableBody.appendChild(row);
+          });
+        })
+        .catch((e) => console.log(e));
+
+      const deleteRow = async (playerId) => {
+        try {
+          const response = await fetch(
+            `http://localhost:3200/mens/${playerId}`,
+            {
+              method: "DELETE",
+            }
+          );
+          const data = await response.json();
+          // Refresh
+          location.reload();
+        } catch (error) {
+          console.log(error);
+        }
+      };
+
+      const editRow = (ranking) => {
+        const row = document.querySelector(`tr[data-ranking="${ranking}"]`);
+        const editButtons = row.querySelectorAll("button");
+
+        row.querySelectorAll("td[contenteditable]").forEach((cell) => {
+          cell.contentEditable = true;
+        });
+
+        editButtons[0].style.display = "none"; // Hide Edit button
+        editButtons[2].style.display = "inline-block"; // Show Save button
+      };
+
+      const saveRow = async (ranking) => {
+        const row = document.querySelector(`tr[data-ranking="${ranking}"]`);
+        const editButtons = row.querySelectorAll("button");
+
+        row.querySelectorAll("td[contenteditable]").forEach((cell) => {
+          cell.contentEditable = false;
+        });
+
+        editButtons[0].style.display = "inline-block"; // Show Edit button
+        editButtons[2].style.display = "none"; // Hide Save button
+
+        const updatedData = {
+          runs: row.cells[2].textContent,
+          balls: row.cells[3].textContent,
+          fours: row.cells[4].textContent,
+          sixes: row.cells[5].textContent,
+          sr: row.cells[6].textContent,
+          team: row.cells[7].textContent,
+          opposition: row.cells[8].textContent,
+          matchDate: row.cells[9].textContent,
+        };
+
+        try {
+          const response = await fetch(
+            `http://localhost:3200/mens/${ranking}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(updatedData),
+            }
+          );
+
+          const data = await response.json();
+          // Handle response if needed
+        } catch (error) {
+          console.log(error);
+        }
+      };
+    </script>
+  </body>
+</html>
